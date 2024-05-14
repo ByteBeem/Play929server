@@ -39,11 +39,5 @@
     "nodemailer": "^6.9.13",
     "ws": "^8.17.0",
     "xss-clean": "^0.1.4"
-  },
-  "devDependencies": {
-    "pm2": "^5.1.0"
-  },
-  "engines": {
-    "node": "14.x"
-  },
+  }
 }
