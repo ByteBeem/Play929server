@@ -145,14 +145,12 @@ router.get("/email" , async (req, res) =>{
 
 });
 
-
 router.get("/activities", async (req, res) => {
   const token = req.header("Authorization");
 
   if (!token || !token.startsWith("Bearer ")) {
-    return res.redirect(401, "https://spinz-three.vercel.app/");
+    return res.status(401).redirect("https://spinz-three.vercel.app/");
   }
-
 
   const tokenValue = token.replace("Bearer ", "");
 
@@ -162,18 +160,17 @@ router.get("/activities", async (req, res) => {
     const snapshot = await db.ref('Activities').orderByChild('user_id').equalTo(decodedToken.email).once('value');
     const userActivities = snapshot.val();
 
-
     if (!userActivities) {
       return res.status(404).json({ error: "User not found." });
     }
 
+    const activities = Object.keys(userActivities).map(key => ({
+      Date: userActivities[key].date_time,
+      Details: userActivities[key].activity_details,
+      Type: userActivities[key].activity_description
+    }));
 
-    const Date = userActivities[Object.keys(userActivities)[0]].date_time;
-    const Details = userActivities[Object.keys(userActivities)[0]].activity_details;
-    const Type = userActivities[Object.keys(userActivities)[0]].activity_description;
-   
-
-    return res.status(200).json({ Date: Date, Details: Details , Type:Type });
+    return res.status(200).json(activities);
   } catch (err) {
     console.error("Error fetching user activities:", err);
     return res.status(500).json({ error: "Internal server error. Please try again later." });
