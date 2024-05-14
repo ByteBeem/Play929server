@@ -170,7 +170,8 @@ router.get("/activities", async (req, res) => {
 
     const Date = userActivities[Object.keys(userActivities)[0]].date_time;
     const Details = userActivities[Object.keys(userActivities)[0]].activity_details;
-    const Type = userActivities[Object.keys(userActivities)][0].activity_description;
+    const Type = userActivities[Object.keys(userActivities)[0]].activity_description;
+   
 
     return res.status(200).json({ Date: Date, Details: Details , Type:Type });
   } catch (err) {
