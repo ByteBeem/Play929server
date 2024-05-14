@@ -146,4 +146,38 @@ router.get("/email" , async (req, res) =>{
 });
 
 
+router.get("/activities", async (req, res) => {
+  const token = req.header("Authorization");
+
+  if (!token || !token.startsWith("Bearer ")) {
+    return res.redirect(401, "https://spinz-three.vercel.app/");
+  }
+
+
+  const tokenValue = token.replace("Bearer ", "");
+
+  try {
+    const decodedToken = jwt.verify(tokenValue, secretKey);
+
+    const snapshot = await db.ref('Activities').orderByChild('user_id').equalTo(decodedToken.email).once('value');
+    const userActivities = snapshot.val();
+
+
+    if (!userActivities) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+
+    const Date = userActivities[Object.keys(userActivities)[0]].date_time;
+    const Details = userActivities[Object.keys(userActivities)[0]].activity_details;
+    const Type = userActivities[Object.keys(userActivities)][0].activity_description;
+
+    return res.status(200).json({ Date: Date, Details: Details , Type:Type });
+  } catch (err) {
+    console.error("Error fetching user activities:", err);
+    return res.status(500).json({ error: "Internal server error. Please try again later." });
+  }
+});
+
+
 module.exports = router;

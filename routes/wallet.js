@@ -168,7 +168,7 @@ const SendWIthdrawalEmail = async (email, amount) => {
         await SendWIthdrawalEmail(decodedToken.email ,  amount);
 
 
-        const withdrawalRef = db.ref('withdrawals').push();
+        const withdrawalRef = db.ref('Activities').push();
         withdrawalRef.set({
             user_id: userId,
             activity_description: 'Withdrawal',
