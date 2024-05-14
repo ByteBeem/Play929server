@@ -81,7 +81,7 @@ app.use('/games', gamesRouter);
 app.use('/users', usersRouter);
 app.use('/wallet', walletRouter);
 
-const WebSocket = require('wss');
+const WebSocket = require('ws');
 const wss = new WebSocket.Server({ port: 8080 });
 
 
