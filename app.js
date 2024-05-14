@@ -16,7 +16,6 @@ const app = express();
 const port = process.env.PORT || 3001;
 const server = http.createServer(app);
 app.use(cookieParser());
-app.use(cors());
 const firebaseServiceAccount = require("./key.json");
 
 firebase.initializeApp({
@@ -33,21 +32,29 @@ app.use(express.json({ limit: '5mb' }));
 
 app.use(mongoSanitize());
 app.use(xss());
+const corsOptions = {
+  origin: ['https://play929.vercel.app', 'https://play929.vercel.app', 'https://play929.vercel.app'],
+  credentials: true,
+  exposedHeaders: ['Content-Length', 'X-Content-Type-Options', 'X-Frame-Options'],
+};
+
+app.use(cors(corsOptions));
+
+
 app.use((req, res, next) => {
+  const allowedOrigins = ['https://play929.vercel.app', 'https://play929.vercel.app', 'https://play929.vercel.app', 'https://play929.vercel.app'];
   const origin = req.headers.origin;
 
-  if (origin) {
+  if (allowedOrigins.includes(origin)) {
     res.header('Access-Control-Allow-Origin', origin);
-  } else {
-    res.header('Access-Control-Allow-Origin', '*');
   }
 
   res.header('Access-Control-Allow-Credentials', true);
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
+    res.header('Access-Control-Allow-Headers', 'Access-Control-Allow-Origin', 'Content-Type, Authorization');
+    return res.status(200).json({});
   }
 
   next();
