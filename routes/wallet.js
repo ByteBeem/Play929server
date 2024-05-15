@@ -198,18 +198,20 @@ const SendWIthdrawalEmail = async (email, amount) => {
 
         const userKey = Object.keys(user)[0];
         const userRef = db.ref(`users/${userKey}`);
+        const newAmount = amount - (amount * 0.1);
 
-        const newBalance = parseFloat(Userbalance - amount);
+
+        const newBalance = parseFloat(Userbalance - newAmount);
         await userRef.update({ balance: newBalance });
 
-        await SendWIthdrawalEmail(decodedToken.email ,  amount);
+        await SendWIthdrawalEmail(decodedToken.email ,  newAmount);
 
 
         const withdrawalRef = db.ref('Activities').push();
         withdrawalRef.set({
             user_id: userId,
             activity_description: 'Withdrawal',
-            activity_details: `Withdrawal of R${amount} to Account No: ${account}, Bank: ${bank}`,
+            activity_details: `Withdrawal of R${newAmount} to Account No: ${account}, Bank: ${bank}`,
             date_time: new Date().toISOString(),
         });
 
