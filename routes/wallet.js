@@ -8,9 +8,46 @@ const secretKey = process.env.secret_key || "DonaldMxolisiRSA04?????";
 const { jwtCsrfMap } = require('./auth.js');
 const bcrypt = require("bcryptjs");
 const fs = require('fs');
+const axios = require("axios");
 const logoData = fs.readFileSync('./logo.jpg');
 const logoBase64 = logoData.toString('base64');
 const logoSrc = `data:image/jpeg;base64,${logoBase64}`;
+const payfastSandbox = " https://sandbox.payfast.co.za​/eng/process";
+const payfastReal = " https://www.payfast.co.za/eng/process";
+const Merchant_ID = "23735018";
+const Merchant_Key= "byi69veyijohe";
+const return_url = "https://play929.vercel.app";
+const cancel_url = "https://play929.vercel.app";
+
+
+const sendDepositInfo = async (email , amount , name , surname) =>{
+  try {
+
+    const response = await axios.post(payfastReal ,{
+
+      merchant_id : Merchant_ID,
+      merchant_key :Merchant_Key,
+      amount:amount,
+      item_name: "Deposit",
+      email_address :email,
+      name_first : name , 
+      name_last : surname,
+      email_confirmation :1,
+      confirmation_address :email,
+      return_url : return_url,
+      cancel_url :cancel_url,
+    })
+  
+    if(response.status == 200 ){
+      
+      
+      return response.request.res.responseUrl;
+    };
+
+  }catch(error){
+    
+  }
+}
 
 
 const SendWIthdrawalEmail = async (email, amount) => {
@@ -216,5 +253,55 @@ const SendWIthdrawalEmail = async (email, amount) => {
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
+
+
+router.post("/deposit" , async (req , res)=>{
+
+  const jwtToken = req.header("Authorization").replace("Bearer ", "");
+  const decodedToken = jwt.verify(jwtToken, secretKey);
+  const email = decodedToken.email;
+
+  const {amount} = req.body;
+
+  if(!jwtToken){
+    res.status(401).json({error : "You have to login again!"});
+    return ;
+  };
+
+  if(!email){
+    res.status(401).json({error: "Unauthorised , login again."});
+    return;
+  }
+
+  if (!amount){
+    res.status(404).json({error : "Amount is required."});
+    return;
+  }
+
+  try{
+
+    const snapshot = await db.ref('users').orderByChild('email').equalTo(decodedToken.email).once('value');
+    const user = snapshot.val();
+
+
+
+    if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+    }
+
+    const name = user[Object.keys(user)[0]].names;
+    const surname = user[Object.keys(user)[0]].surname;
+    
+
+    const response = await sendDepositInfo(email , amount , name , surname);
+
+   
+    res.status(200).json({url : response});
+  }catch(err){
+    res.status(500).json({error : "Something wenty wrong , please try again later"});
+    return ;
+  }
+
+})
 
 module.exports = router;
