@@ -99,7 +99,7 @@ router.post("/one-vs-one", async (req, res) => {
     let balance;
     let user;
 
-    const { mode } = req.body;
+    const { mode , game} = req.body;
     if (mode === "Friendly") {
       type = req.body.type;
     } else {
@@ -133,6 +133,7 @@ router.post("/one-vs-one", async (req, res) => {
       mode,
       stakeAmount: stake || null,
       type,
+      game,
       creator: decodedToken.email,
       blackPlayerLink: black,
       whitePlayerLink: white,
@@ -164,7 +165,7 @@ router.post("/tournament", async (req, res) => {
     let prize;
     let balance;
     let firstRoundGames = [];
-    const { mode, numberOfPlayers } = req.body;
+    const { mode, numberOfPlayers  , game} = req.body;
     let tournamentRounds ;
 
     if (parseInt(numberOfPlayers) === 3) {
@@ -233,6 +234,7 @@ router.post("/tournament", async (req, res) => {
       mode: mode,
       stakeAmount: stake || null,
       type: type,
+      game,
       creator: decodedToken.email,
       firstRoundLinks: firstRoundGames,
       prize :prize || null,
