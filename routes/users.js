@@ -41,6 +41,7 @@ router.get("/old", async (req, res) => {
           game:game.game,
           stakeAmount: game.stakeAmount || null,
           type: game.type,
+          state:game.state,
           
         });
       });

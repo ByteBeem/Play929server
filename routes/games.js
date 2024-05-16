@@ -19,11 +19,11 @@ axiosRetry(axios, {
   retryCondition: (error) => axiosRetry.isNetworkError(error) || axiosRetry.isRetryableError(error)
 });
 
-const getLink = async (gameId ,userName) => {
+const getLink = async (gameId ,userName ) => {
   try {
     const response = await axios.get(`https://finalchess-12346c5fc79d.herokuapp.com/create_room?type=multi&name=${gameId}`);
 
-    const CreatorLink = `https://finalchess-12346c5fc79d.herokuapp.com/chess?userName=${userName}&roomName=${gameId}&algorithm=random&depth=&time=`
+    const CreatorLink = `https://finalchess-12346c5fc79d.herokuapp.com/chess?userName=${userName}&roomName=${gameId}&algorithm=random&depth=&time=`;
     return CreatorLink;
   }catch(error){
 
@@ -116,7 +116,7 @@ router.post("/one-vs-one", async (req, res) => {
 
 
     const gameId = uuidv4();
-    const Link= await getLink(gameId, userName);
+    const Link= await getLink(gameId, userName , newStake);
 
     await db.ref(`games/${gameId}`).set({
       mode,
@@ -126,6 +126,8 @@ router.post("/one-vs-one", async (req, res) => {
       creator: decodedToken.email,
       name : userName,
       Link:Link,
+      opponent : "",
+      state: "Not started",
       
     });
 
