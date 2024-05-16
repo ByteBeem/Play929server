@@ -289,6 +289,7 @@ router.post("/confirm-otp", async (req, res) => {
         {
 
           email: email,
+          name: names,
 
         },
         secretKey,
@@ -333,6 +334,7 @@ router.post("/login", async (req, res) => {
         {
 
           email: user.email,
+          name: user.names,
         },
         secretKey,
         { expiresIn: "7D" }

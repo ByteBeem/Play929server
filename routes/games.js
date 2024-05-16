@@ -19,26 +19,14 @@ axiosRetry(axios, {
   retryCondition: (error) => axiosRetry.isNetworkError(error) || axiosRetry.isRetryableError(error)
 });
 
-const getLink = async (code, color) => {
+const getLink = async (gameId ,userName) => {
   try {
-    const responsePromise = axios.get(`https://mychess-c381616f9ad8.herokuapp.com/${color}?code=${code}`);
+    const response = await axios.get(`https://finalchess-12346c5fc79d.herokuapp.com/create_room?type=multi&name=${gameId}`);
 
-    return responsePromise.then(response => {
-      if (response.status === 200) {
-        let returnUrl = response.request.res.responseUrl;
-        let returnUrlBlack = returnUrl.replace(`${color}`, 'black');
+    const CreatorLink = `https://finalchess-12346c5fc79d.herokuapp.com/chess?userName=${userName}&roomName=${gameId}&algorithm=random&depth=&time=`
+    return CreatorLink;
+  }catch(error){
 
-        return { black: returnUrlBlack, white: returnUrl };
-      } else {
-        throw new Error(`Unexpected status code: ${response.status}`);
-      }
-    }).catch(error => {
-      console.error('Error occurred:', error.message);
-      throw error;
-    });
-  } catch (error) {
-    console.error('Error occurred:', error.message);
-    throw error;
   }
 };
 
@@ -92,6 +80,7 @@ router.post("/one-vs-one", async (req, res) => {
 
   try {
     const decodedToken = jwt.verify(tokenValue, secretKey);
+    const userName = decodedToken.name;
 
     let type;
     let stake;
@@ -127,7 +116,7 @@ router.post("/one-vs-one", async (req, res) => {
 
 
     const gameId = uuidv4();
-    const { black, white } = await getLink(gameId, 'white');
+    const Link= await getLink(gameId, userName);
 
     await db.ref(`games/${gameId}`).set({
       mode,
@@ -135,11 +124,12 @@ router.post("/one-vs-one", async (req, res) => {
       type,
       game,
       creator: decodedToken.email,
-      blackPlayerLink: black,
-      whitePlayerLink: white,
+      name : userName,
+      Link:Link,
+      
     });
 
-    return res.status(200).json({ white, black });
+    return res.status(200).json({ Link:Link });
   } catch (err) {
     console.error("Error creating one-vs-one game:", err);
     return res.status(500).json({ error: "Internal server error. Please try again later." });
