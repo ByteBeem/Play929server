@@ -38,11 +38,10 @@ router.get("/old", async (req, res) => {
         
         prevGames.push({
           mode: game.mode,
+          game:game.game,
           stakeAmount: game.stakeAmount || null,
           type: game.type,
-          creator: game.creator,
-          blackPlayerLink: game.blackPlayerLink,
-          whitePlayerLink: game.whitePlayerLink,
+          
         });
       });
     }
