@@ -134,7 +134,7 @@ const OTPgen = async () => {
   return code
 }
 
-const SendSignUpEmail = async (email, code) => {
+const SendSignUpEmail = async (email , code) => {
 
   const transporter = nodemailer.createTransport({
     service: 'Gmail',
@@ -146,19 +146,64 @@ const SendSignUpEmail = async (email, code) => {
 
 
   const mailOptions = {
-    from: 'Play929 Support <support@Play929.com>',
-    to: email,
-    subject: 'Account Verification',
-    html: `
-      <p>Dear User,</p>
-      <p>Your OTP code to verify your account on Play929.com is:</p>
-      <p>${code}</p>
-      <p>Thank you for choosing Play929.com.</p>
-      <p>Sincerely,</p>
-      <p>The Play929 Team</p>
-    `,
-  };
-  
+      from: 'Play929 Support <support@Play929.com>',
+      to: email,
+      subject: 'Account Verification',
+      html: `
+        <html>
+          <head>
+            <style>
+              body {
+                font-family: Arial, sans-serif;
+              }
+              .container {
+                max-width: 600px;
+                margin: 0 auto;
+                padding: 20px;
+                border: 1px solid #ccc;
+                border-radius: 5px;
+                background-color: #f9f9f9;
+              }
+              .logo {
+                width: 150px;
+                display: block;
+                margin: 0 auto;
+              }
+              h1 {
+                text-align: center;
+                color: #333;
+              }
+              p {
+                margin-bottom: 20px;
+                line-height: 1.6;
+                color: #666;
+              }
+              .footer {
+                text-align: center;
+                color: #999;
+                font-size: 12px;
+                margin-top: 20px;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <img src=${logoSrc} alt="Play929 Logo" class="logo">
+              <h1>Account Verification</h1>
+              <p>Hello Customer,</p>
+              <p>Here is a code to verufy your play929.com account: ${code} .</p>
+              <p>Any issues , please contact us on <a href="mailto:support@Play929.com">support@Play929.com</a.</p>
+              
+              <div class="footer">
+                <p>This is an automated email, please do not reply.</p>
+                
+              </div>
+            </div>
+          </body>
+        </html>
+      `,
+    };
+    
 
   try {
 
