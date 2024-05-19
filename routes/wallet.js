@@ -31,7 +31,7 @@ const logger = winston.createLogger({
 });
 
 const createUserRateLimiter = (getUserId) => rateLimit({
-  windowMs: 5 * 60 * 1000, 
+  windowMs: 15 * 60 * 1000, 
   max: 5, 
   keyGenerator: (req) => getUserId(req),
   message: 'Too many withdrawal requests, please try again after 15 minutes',
