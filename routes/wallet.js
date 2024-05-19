@@ -255,7 +255,7 @@ const SendWithdrawalEmail = async (email, amount) => {
   
         res.status(200).json({ message: 'Withdrawal successful', newBalance: Userbalance - amount });
       } catch (error) {
-        logger.error('Withdrawal error:', error);
+        console.log('Withdrawal error:', error);
         res.status(500).json({ error: 'Internal Server Error' });
       }
     }
