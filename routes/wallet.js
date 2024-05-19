@@ -18,7 +18,31 @@ const Merchant_ID = "23735018";
 const Merchant_Key= "byi69veyijohe";
 const return_url = "https://play929.vercel.app";
 const cancel_url = "https://play929.vercel.app";
+const rateLimit = require('express-rate-limit');
+const { body, validationResult } = require('express-validator');
+const winston = require('winston');
 
+const logger = winston.createLogger({
+  level: 'info',
+  format: winston.format.json(),
+  transports: [
+    new winston.transports.File({ filename: 'suspicious-activities.log' }),
+  ],
+});
+
+const createUserRateLimiter = (getUserId) => rateLimit({
+  windowMs: 5 * 60 * 1000, 
+  max: 5, 
+  keyGenerator: (req) => getUserId(req),
+  message: 'Too many withdrawal requests, please try again after 15 minutes',
+});
+
+
+const getUserIdFromToken = (req) => {
+  const token = req.header("Authorization").replace("Bearer ", "");
+  const decodedToken = jwt.verify(token, secretKey);
+  return decodedToken.email;
+};
 
 const sendDepositInfo = async (email , amount , name , surname) =>{
   try {
@@ -50,7 +74,7 @@ const sendDepositInfo = async (email , amount , name , surname) =>{
 }
 
 
-const SendWIthdrawalEmail = async (email, amount) => {
+const SendWithdrawalEmail = async (email, amount) => {
 
     const transporter = nodemailer.createTransport({
       service: 'Gmail',
@@ -130,131 +154,112 @@ const SendWIthdrawalEmail = async (email, amount) => {
       console.error('Error sending email: ', error);
       return false;
     }
-  };
-  router.post('/withdraw', async (req, res) => {
-    
-    try {
-        
+  };router.post(
+    '/withdraw',
+    createUserRateLimiter(getUserIdFromToken),
+    [
+      body('amount').isFloat({ gt: 0 }).withMessage('Invalid withdrawal amount'),
+      body('account').isString().notEmpty().withMessage('Account number is required'),
+      body('bank').isString().notEmpty().withMessage('Bank is required'),
+      body('password').isString().notEmpty().withMessage('Password is required'),
+    ],
+    async (req, res) => {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+  
+      try {
         const jwtToken = req.header("Authorization").replace("Bearer ", "");
         const csrfToken = req.headers["x-csrf-token"];
-        
         const storedCsrfToken = jwtCsrfMap.get(jwtToken);
-        
-        
+  
         if (csrfToken !== storedCsrfToken) {
-          return res.status(403).json({ error: "unauthorized , refresh the page!" });
+          return res.status(403).json({ error: "Unauthorized, refresh the page!" });
         }
-
-        const token = req.header('Authorization').replace('Bearer ', '');
+  
         const { amount, account, bank, password } = req.body;
-
-        if (!bank) {
-            return res.status(400).json({ error: 'Select your Bank' });
-        }
-
-        const decodedToken = jwt.verify(token, secretKey);
+        const decodedToken = jwt.verify(jwtToken, secretKey);
         const userId = decodedToken.email;
-
-        const snapshot = await db.ref('users').orderByChild('email').equalTo(decodedToken.email).once('value');
+  
+        const snapshot = await db.ref('users').orderByChild('email').equalTo(userId).once('value');
         const user = snapshot.val();
-
-
-
+  
         if (!user) {
-            return res.status(404).json({ error: 'User not found' });
+          return res.status(404).json({ error: 'User not found' });
         }
-
-        const Username = user[Object.keys(user)[0]].names;
-        const Usersurname = user[Object.keys(user)[0]].surname;
-        const UserEmail = user[Object.keys(user)[0]].email;
-        const Userpassword = user[Object.keys(user)[0]].password;
-        const Userbalance = user[Object.keys(user)[0]].balance;
-        const userCountry = user[Object.keys(user)[0]].country;
-
-
-        const isMatch = await bcrypt.compare(password, Userpassword);
-
-        if (!isMatch) {
-            return res.status(400).json({ error: 'Incorrect Password' });
-        }
-
-
-        if (isNaN(amount) || amount <= 0) {
-            return res.status(400).json({ error: 'Invalid withdrawal amount' });
-        }
-
-        if (amount < 200 && userCountry === "ZA") {
-            return res.status(400).json({ error: 'Minimum withdrawal amount is R200' });
-        }
-
-        if (amount < 200 && userCountry !== "ZA") {
-            return res.status(400).json({ error: 'Minimum withdrawal amount is $100' });
-        }
-
-
-        if (amount > Userbalance) {
-            return res.status(400).json({ error: 'Insufficient balance' });
-        }
-
+  
         const userKey = Object.keys(user)[0];
-        const userRef = db.ref(`users/${userKey}`);
+        const userData = user[userKey];
+  
+        const { names: Username, surname: Usersurname, email: UserEmail, password: Userpassword, balance: Userbalance, country: userCountry } = userData;
+  
+        const isMatch = await bcrypt.compare(password, Userpassword);
+        if (!isMatch) {
+          return res.status(400).json({ error: 'Incorrect password' });
+        }
+  
+        if (amount < 200 && userCountry === "ZA") {
+          return res.status(400).json({ error: 'Minimum withdrawal amount is R200' });
+        }
+  
+        if (amount < 100 && userCountry !== "ZA") {
+          return res.status(400).json({ error: 'Minimum withdrawal amount is $100' });
+        }
+  
+        if (amount > Userbalance) {
+          return res.status(400).json({ error: 'Insufficient balance' });
+        }
+  
+        
         const newAmount = amount - (amount * 0.1);
-
-
-        const newBalance = parseFloat(Userbalance - newAmount);
-        await userRef.update({ balance: newBalance });
-
-        await SendWIthdrawalEmail(decodedToken.email ,  newAmount);
-
-
+        await db.ref(`users/${userKey}`).transaction(currentData => {
+          if (currentData && currentData.balance >= amount) {
+            currentData.balance -= amount;
+            return currentData;
+          }
+          return; 
+        });
+  
+        await SendWithdrawalEmail(UserEmail, newAmount);
+  
         const withdrawalRef = db.ref('Activities').push();
         withdrawalRef.set({
-            user_id: userId,
-            activity_description: 'Withdrawal',
-            activity_details: `Withdrawal of R${newAmount} to Account No: ${account}, Bank: ${bank}`,
-            date_time: new Date().toISOString(),
+          user_id: userId,
+          activity_description: 'Withdrawal',
+          activity_details: `Withdrawal of R${newAmount} to Account No: ${account}, Bank: ${bank}`,
+          date_time: new Date().toISOString(),
         });
-
-        const transporter = nodemailer.createTransport({
-
-            service: 'Gmail',
-            auth: {
-                user: 'heckyl66@gmail.com',
-                pass: 'izpanbvcuqhsvlyb',
-            },
-        });
-
-
+  
         const mailOptions = {
-            from: 'heckyl66@gmail.com',
-            to: 'donald.mxolisi@proton.me',
-            subject: 'Withdrawal Request',
-            html: `
-          <p>Withdrawal Request Details:</p>
-          <ul>
-            <li>Name: ${Username}</li>
-            <li>SurName: ${Usersurname}</li>
-            <li>Cell: ${UserEmail}</li>
-            <li>User ID: ${userId}</li>
-            <li>Withdrawal Amount: ${amount}</li>
-            <li>Account: ${account}</li>
-            <li>Bank: ${bank}</li>
-            <li>Country : ${userCountry}</li>
-          </ul>
-          <p>Your withdrawal request is being processed. Thank you!</p>
-        `,
+          from: 'heckyl66@gmail.com',
+          to: 'donald.mxolisi@proton.me',
+          subject: 'Withdrawal Request',
+          html: `
+            <p>Withdrawal Request Details:</p>
+            <ul>
+              <li>Name: ${Username}</li>
+              <li>SurName: ${Usersurname}</li>
+              <li>Cell: ${UserEmail}</li>
+              <li>User ID: ${userId}</li>
+              <li>Withdrawal Amount: ${amount}</li>
+              <li>Account: ${account}</li>
+              <li>Bank: ${bank}</li>
+              <li>Country : ${userCountry}</li>
+            </ul>
+            <p>Your withdrawal request is being processed. Thank you!</p>
+          `,
         };
-
-
+  
         await transporter.sendMail(mailOptions);
-        
-
-        res.status(200).json({ message: 'Withdrawal successful', newBalance });
-    } catch (error) {
-        console.error('Withdrawal error:', error);
+  
+        res.status(200).json({ message: 'Withdrawal successful', newBalance: Userbalance - amount });
+      } catch (error) {
+        logger.error('Withdrawal error:', error);
         res.status(500).json({ error: 'Internal Server Error' });
+      }
     }
-});
+  );
 
 
 router.post("/deposit" , async (req , res)=>{
