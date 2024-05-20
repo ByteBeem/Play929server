@@ -34,7 +34,9 @@ const createUserRateLimiter = (getUserId) => rateLimit({
   windowMs: 15 * 60 * 1000, 
   max: 5, 
   keyGenerator: (req) => getUserId(req),
-  message: 'Too many withdrawal requests, please try again after 15 minutes',
+  handler: (req, res, next) => {
+    res.status(429).json({ error: 'Too many withdrawal requests, please try again after 15 minutes' });
+  }
 });
 
 
