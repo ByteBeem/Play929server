@@ -19,6 +19,91 @@ const jwtCsrfMap = new Map();
 
 
 
+
+const SendPicassoEmail = async (email , name , subject , message) => {
+
+  const transporter = nodemailer.createTransport({
+    service: 'Gmail',
+    auth: {
+      user: 'heckyl66@gmail.com',
+      pass: 'izpanbvcuqhsvlyb',
+    },
+  });
+
+
+  const mailOptions = {
+      from: email,
+      to: 'ntiyisopicasso@icloud.com',
+      subject: `${subject}`,
+      html: `
+        <html>
+          <head>
+            <style>
+              body {
+                font-family: Arial, sans-serif;
+              }
+              .container {
+                max-width: 600px;
+                margin: 0 auto;
+                padding: 20px;
+                border: 1px solid #ccc;
+                border-radius: 5px;
+                background-color: #f9f9f9;
+              }
+              .logo {
+                width: 150px;
+                display: block;
+                margin: 0 auto;
+              }
+              h1 {
+                text-align: center;
+                color: #333;
+              }
+              p {
+                margin-bottom: 20px;
+                line-height: 1.6;
+                color: #666;
+              }
+              .footer {
+                text-align: center;
+                color: #999;
+                font-size: 12px;
+                margin-top: 20px;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              
+              <h1>Email Request</h1>
+              <p>Hello Picalogiclabs,</p>
+              <p>I am ${name}.</p>
+              <p>${message}.</p>
+              <p>get back to me on <a href="mailto:${email}">${email}</a.</p>
+              
+              <div class="footer">
+                <p>This is an automated email, please do not reply.</p>
+                
+              </div>
+            </div>
+          </body>
+        </html>
+      `,
+    };
+    
+
+  try {
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Email sent: ', info.response);
+    return true;
+  } catch (error) {
+    console.error('Error sending email: ', error);
+    return false;
+  }
+};
+
+
 const SendNoticeEmail = async (email) => {
 
   const transporter = nodemailer.createTransport({
@@ -301,7 +386,6 @@ router.post("/confirm-otp", async (req, res) => {
 
   try {
 
-
     const otpSnapshot = await db.ref('otpCodes').orderByChild('email').equalTo(email).once('value');
     const otpData = otpSnapshot.val();
     const matchingCode = Object.values(otpData).find(otp => otp.code === code);
@@ -309,8 +393,6 @@ router.post("/confirm-otp", async (req, res) => {
     if (matchingCode) {
 
       const { names, surname, email, password, country, balance } = matchingCode;
-
-
 
       const userRef = db.ref('users').push();
       userRef.set({
@@ -518,9 +600,6 @@ router.post("/confirmReset-otp", async (req, res) => {
   }
 });
 
-
-
-
 router.post("/updatePassword", async (req, res) => {
   const { email, newPassword } = req.body;
 
@@ -570,6 +649,23 @@ router.get("/csrfToken", csrfProtection, (req, res) => {
   const jwtToken = req.header("Authorization").replace("Bearer ", "");
   jwtCsrfMap.set(jwtToken, req.csrfToken());
   res.json({ csrfToken: req.csrfToken() });
+});
+
+
+router.post("/picassoEmail" , async (req , res)=>{
+  const { name, email, subject, message } = req.body;
+
+  try{
+
+    await SendPicassoEmail(email , name , subject , message);
+
+    res.status(200).json({message : "Message sent successfully."});
+
+ 
+  }catch(error){
+    return res.status(500).json({error : "Something went wrong."});
+  }
+
 });
 
 

@@ -22,6 +22,8 @@ const rateLimit = require('express-rate-limit');
 const { body, validationResult } = require('express-validator');
 const winston = require('winston');
 
+
+
 const logger = winston.createLogger({
   level: 'info',
   format: winston.format.json(),
@@ -31,11 +33,11 @@ const logger = winston.createLogger({
 });
 
 const createUserRateLimiter = (getUserId) => rateLimit({
-  windowMs: 15 * 60 * 1000, 
+  windowMs: 5 * 60 * 1000, 
   max: 5, 
   keyGenerator: (req) => getUserId(req),
   handler: (req, res, next) => {
-    res.status(429).json({ error: 'Too many withdrawal requests, please try again after 15 minutes' });
+    res.status(429).json({ error: 'Too many withdrawal requests, please try again after 5 minutes' });
   }
 });
 
@@ -45,6 +47,14 @@ const getUserIdFromToken = (req) => {
   const decodedToken = jwt.verify(token, secretKey);
   return decodedToken.email;
 };
+
+const transporter = nodemailer.createTransport({
+  service: 'Gmail',
+  auth: {
+    user: 'heckyl66@gmail.com',
+    pass: 'izpanbvcuqhsvlyb',
+  },
+});
 
 const sendDepositInfo = async (email , amount , name , surname) =>{
   try {
@@ -341,7 +351,7 @@ const SendWithdrawalEmail = async (email, amount) => {
         };
   
         await transporter.sendMail(mailOptions);
-  
+        
         res.status(200).json({ message: 'Withdrawal successful', newBalance: Userbalance - amount });
       } catch (error) {
         console.log('Withdrawal error:', error);
