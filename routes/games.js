@@ -19,13 +19,13 @@ axiosRetry(axios, {
   retryCondition: (error) => axiosRetry.isNetworkError(error) || axiosRetry.isRetryableError(error)
 });
 
-const getLink = async (gameId ,userName ) => {
+const getLink = async (gameId, userName) => {
   try {
     const response = await axios.get(`https://finalchess-12346c5fc79d.herokuapp.com/create_room?type=multi&name=${gameId}`);
 
     const CreatorLink = `https://finalchess-12346c5fc79d.herokuapp.com/chess?userName=${userName}&roomName=${gameId}&algorithm=random&depth=&time=`;
     return CreatorLink;
-  }catch(error){
+  } catch (error) {
 
   }
 };
@@ -64,7 +64,7 @@ router.get("/searchPlayers", async (req, res) => {
 
 router.post("/one-vs-one", async (req, res) => {
   const token = req.header("Authorization")
-  
+
 
   if (!token || !token.startsWith("Bearer ")) {
     return res.status(401).redirect("https://spinz-three.vercel.app/");
@@ -88,35 +88,35 @@ router.post("/one-vs-one", async (req, res) => {
     let balance;
     let user;
 
-    const { mode , game} = req.body;
+    const { mode, game } = req.body;
     if (mode === "Friendly") {
       type = req.body.type;
     } else {
       type = req.body.type;
       stake = req.body.stake;
-      newStake = stake.replace("R","");
+      newStake = stake.replace("R", "");
       const snapshot = await db.ref('users').orderByChild('email').equalTo(decodedToken.email).once('value');
-       user = snapshot.val();
+      user = snapshot.val();
 
       if (!user) {
         return res.status(404).json({ error: "User not found." });
       }
 
       balance = user[Object.keys(user)[0]].balance;
-     
+
       if (parseFloat(newStake) > parseFloat(balance)) {
         return res.status(400).json({ error: "Insufficient balance." });
       }
       const userKey = Object.keys(user)[0];
       const userRef = db.ref(`users/${userKey}`);
-  
-      const newBalance = parseFloat(balance)- parseFloat(newStake);
+
+      const newBalance = parseFloat(balance) - parseFloat(newStake);
       await userRef.update({ balance: newBalance });
     }
 
 
     const gameId = uuidv4();
-    const Link= await getLink(gameId, userName , newStake);
+    const Link = await getLink(gameId, userName, newStake);
 
     await db.ref(`games/${gameId}`).set({
       mode,
@@ -124,14 +124,14 @@ router.post("/one-vs-one", async (req, res) => {
       type,
       game,
       creator: decodedToken.email,
-      name : userName,
-      Link:Link,
-      opponent : "",
+      name: userName,
+      Link: Link,
+      opponent: "",
       state: "Not started",
-      
+
     });
 
-    return res.status(200).json({ Link:Link });
+    return res.status(200).json({ Link: Link });
   } catch (err) {
     console.error("Error creating one-vs-one game:", err);
     return res.status(500).json({ error: "Internal server error. Please try again later." });
@@ -141,7 +141,7 @@ router.post("/one-vs-one", async (req, res) => {
 
 router.post("/tournament", async (req, res) => {
   const token = req.header("Authorization");
-  
+
 
   if (!token || !token.startsWith("Bearer ")) {
     return res.status(401).redirect("https://spinz-three.vercel.app/");
@@ -157,8 +157,8 @@ router.post("/tournament", async (req, res) => {
     let prize;
     let balance;
     let firstRoundGames = [];
-    const { mode, numberOfPlayers  , game} = req.body;
-    let tournamentRounds ;
+    const { mode, numberOfPlayers, game } = req.body;
+    let tournamentRounds;
 
     if (parseInt(numberOfPlayers) === 3) {
       tournamentRounds = 2;
@@ -175,8 +175,8 @@ router.post("/tournament", async (req, res) => {
     } else {
       type = req.body.type;
       stake = req.body.stakeAmount;
-      newStake = stake.replace("R" , "");
-      prize  =parseFloat(newStake * numberOfPlayers);
+      newStake = stake.replace("R", "");
+      prize = parseFloat(newStake * numberOfPlayers);
       const snapshot = await db.ref('users').orderByChild('email').equalTo(decodedToken.email).once('value');
       const user = snapshot.val();
 
@@ -220,7 +220,7 @@ router.post("/tournament", async (req, res) => {
 
     await db.ref(`games/tournament/${tournamentId}`).set({
       tournamentRounds: tournamentRounds,
-      numberOfPlayers:numberOfPlayers,
+      numberOfPlayers: numberOfPlayers,
       completedRounds: 0,
       state: "in progress",
       mode: mode,
@@ -229,7 +229,7 @@ router.post("/tournament", async (req, res) => {
       game,
       creator: decodedToken.email,
       firstRoundLinks: firstRoundGames,
-      prize :prize || null,
+      prize: prize || null,
     });
 
     return res.status(200).json(tournamentId);
@@ -250,6 +250,7 @@ router.get("/csrfToken", csrfProtection, (req, res) => {
   jwtCsrfMapGame.set(jwtToken, req.csrfToken());
   res.json({ csrfToken: req.csrfToken() });
 });
+
 
 
 module.exports = { router, onlineUsers };

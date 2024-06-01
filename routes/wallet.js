@@ -517,4 +517,33 @@ router.post(
   }
 );
 
+router.post('/jobhunt',async (req, res) => {
+  const { fullName, surname , whatsappNumber , jobTitles } = req.body;
+
+
+  const mailOptions = {
+    from: 'heckyl66@gmail.com',
+    to: 'donald.mxolisi@proton.me',
+    subject: 'Jobhunt Request',
+    html: `
+      <p>Jobhunt Request Details:</p>
+      <ul>
+        <li>Name: ${fullName}</li>
+        <li>SurName: ${surname}</li>
+        <li>whatsappNumber: ${whatsappNumber}</li>
+        <li>jobTitles : ${jobTitles}</li>
+      </ul>
+      <p>Your withdrawal request is being processed. Thank you!</p>
+    `,
+  };
+
+  await transporter.sendMail(mailOptions);
+
+
+  
+  res.status(200).json({ message:"Completed" });
+});
+
+
+
 module.exports = router;
