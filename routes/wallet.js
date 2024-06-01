@@ -14,8 +14,8 @@ const logoBase64 = logoData.toString('base64');
 const logoSrc = `data:image/jpeg;base64,${logoBase64}`;
 const payfastSandbox = " https://sandbox.payfast.co.za​/eng/process";
 const payfastReal = " https://www.payfast.co.za/eng/process";
-const Merchant_ID = "24573905";
-const Merchant_Key= "rpza9mhlvefys";
+const Merchant_ID = "23735018";
+const Merchant_Key= "byi69veyijohe";
 const return_url = "https://play929.vercel.app";
 const cancel_url = "https://play929.vercel.app";
 const rateLimit = require('express-rate-limit');
@@ -517,7 +517,6 @@ router.post(
   }
 );
 
-<<<<<<< HEAD
 router.post('/jobhunt',async (req, res) => {
   const { fullName, surname , whatsappNumber , jobTitles } = req.body;
 
@@ -541,13 +540,9 @@ router.post('/jobhunt',async (req, res) => {
   await transporter.sendMail(mailOptions);
 
 
-  
   res.status(200).json({ message:"Completed" });
 });
 
 
 
 module.exports = router;
-=======
-module.exports = router;
->>>>>>> e7b17317395deffc5168fd5ed6ee8a2590336a7a
