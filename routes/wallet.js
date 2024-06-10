@@ -274,7 +274,7 @@ const SendWithdrawalEmail = async (email, amount) => {
         const storedCsrfToken = jwtCsrfMap.get(jwtToken);
   
         if (csrfToken !== storedCsrfToken) {
-          return res.status(403).json({ error: "Unauthorized, refresh the page!" });
+          return res.status(403).json({ NotAuthorisedError: "Unauthorized, refresh the page!" });
         }
   
         const { amount, account, bank, password } = req.body;
@@ -285,7 +285,7 @@ const SendWithdrawalEmail = async (email, amount) => {
         const user = snapshot.val();
   
         if (!user) {
-          return res.status(404).json({ error: 'User not found' });
+          return res.status(404).json({ UserError: 'User not found' });
         }
   
         const userKey = Object.keys(user)[0];
@@ -295,11 +295,11 @@ const SendWithdrawalEmail = async (email, amount) => {
   
         const isMatch = await bcrypt.compare(password, Userpassword);
         if (!isMatch) {
-          return res.status(400).json({ error: 'Incorrect password' });
+          return res.status(400).json({ PasswordError: 'Incorrect password' });
         }
   
         if (amount < 200 && userCountry === "ZA") {
-          return res.status(400).json({ error: 'Minimum withdrawal amount is R200' });
+          return res.status(400).json({ MinimumError: 'Minimum withdrawal amount is R200' });
         }
   
         if (amount < 100 && userCountry !== "ZA") {
@@ -307,7 +307,7 @@ const SendWithdrawalEmail = async (email, amount) => {
         }
   
         if (amount > Userbalance) {
-          return res.status(400).json({ error: 'Insufficient balance' });
+          return res.status(400).json({ BalanceError: 'Insufficient balance' });
         }
   
         
