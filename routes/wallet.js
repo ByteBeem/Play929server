@@ -19,7 +19,7 @@ const Merchant_Key= "byi69veyijohe";
 const return_url = "https://play929.vercel.app";
 const cancel_url = "https://play929.vercel.app";
 const rateLimit = require('express-rate-limit');
-const { body, validationResult } = require('express-validator');
+const { body, validationResult, sanitizeBody } = require('express-validator');
 const winston = require('winston');
 
 
@@ -54,6 +54,7 @@ const transporter = nodemailer.createTransport({
     user: 'heckyl66@gmail.com',
     pass: 'izpanbvcuqhsvlyb',
   },
+  secure: true,
 });
 
 const sendDepositInfo = async (email , amount , name , surname) =>{
@@ -252,15 +253,15 @@ const SendWithdrawalEmail = async (email, amount) => {
     }
   };
   
-  
   router.post(
     '/withdraw',
     createUserRateLimiter(getUserIdFromToken),
     [
-      body('amount').isFloat({ gt: 0 }).withMessage('Invalid withdrawal amount'),
-      body('account').isString().notEmpty().withMessage('Account number is required'),
-      body('bank').isString().notEmpty().withMessage('Bank is required'),
-      body('password').isString().notEmpty().withMessage('Password is required'),
+      body('amount').isFloat({ gt: 0 }).withMessage('Invalid withdrawal amount').toFloat(),
+      body('account').isString().notEmpty().withMessage('Account number is required').trim().escape(),
+      body('bank').isString().notEmpty().withMessage('Bank is required').trim().escape(),
+      body('password').isString().notEmpty().withMessage('Password is required').trim().escape(),
+      sanitizeBody('*').escape()
     ],
     async (req, res) => {
       const errors = validationResult(req);
@@ -298,26 +299,22 @@ const SendWithdrawalEmail = async (email, amount) => {
           return res.status(400).json({ PasswordError: 'Incorrect password' });
         }
   
-        if (amount < 200 && userCountry === "ZA") {
-          return res.status(400).json({ MinimumError: 'Minimum withdrawal amount is R200' });
-        }
-  
-        if (amount < 100 && userCountry !== "ZA") {
-          return res.status(400).json({ error: 'Minimum withdrawal amount is $100' });
+        const minimumAmount = userCountry === "ZA" ? 200 : 100;
+        if (amount < minimumAmount) {
+          return res.status(400).json({ MinimumError: `Minimum withdrawal amount is ${userCountry === "ZA" ? 'R200' : '$100'}` });
         }
   
         if (amount > Userbalance) {
           return res.status(400).json({ BalanceError: 'Insufficient balance' });
         }
   
-        
         const newAmount = amount - (amount * 0.1);
-        await db.ref(`users/${userKey}`).transaction(currentData => {
+        const newBalance = await db.ref(`users/${userKey}`).transaction(currentData => {
           if (currentData && currentData.balance >= amount) {
             currentData.balance -= amount;
             return currentData;
           }
-          return; 
+          return currentData;
         });
   
         await SendWithdrawalEmail(UserEmail, newAmount);
@@ -338,23 +335,23 @@ const SendWithdrawalEmail = async (email, amount) => {
             <p>Withdrawal Request Details:</p>
             <ul>
               <li>Name: ${Username}</li>
-              <li>SurName: ${Usersurname}</li>
-              <li>Cell: ${UserEmail}</li>
+              <li>Surname: ${Usersurname}</li>
+              <li>Email: ${UserEmail}</li>
               <li>User ID: ${userId}</li>
-              <li>Withdrawal Amount: ${amount}</li>
+              <li>Withdrawal Amount: ${newAmount}</li>
               <li>Account: ${account}</li>
               <li>Bank: ${bank}</li>
-              <li>Country : ${userCountry}</li>
+              <li>Country: ${userCountry}</li>
             </ul>
             <p>Your withdrawal request is being processed. Thank you!</p>
           `,
         };
   
         await transporter.sendMail(mailOptions);
-        
-        res.status(200).json({ message: 'Withdrawal successful', newBalance: Userbalance - amount });
+  
+        res.status(200).json({ message: 'Withdrawal successful', newBalance: newBalance.balance });
       } catch (error) {
-        console.log('Withdrawal error:', error);
+        console.error('Withdrawal error:', error);
         res.status(500).json({ error: 'Internal Server Error' });
       }
     }
