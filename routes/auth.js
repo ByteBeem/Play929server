@@ -434,9 +434,9 @@ router.post("/confirm-otp", async (req, res) => {
 });
 
 router.post("/login", async (req, res) => {
-  const { email, password, token } = req.body;
+  const { email, password } = req.body;
 
-  const isValid = await validateRecaptcha(token);
+  const isValid = true;
 
 
   try {
