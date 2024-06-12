@@ -191,22 +191,7 @@ const validateEmail = (email) => {
   return emailRegex.test(email);
 };
 
-async function validateRecaptcha(token) {
 
-  const secretKey = '6LeZbckpAAAAACEX7ap_CZ9-8OXDWIia69GmsXlV';
-  const url = `https://www.google.com/recaptcha/api/siteverify?secret=${secretKey}&response=${token}`;
-
-  try {
-    const response = await axios.post(url);
-
-    const { success } = response.data;
-    return success;
-  } catch (error) {
-    console.error('Recaptcha validation error: ', error);
-    return false;
-  }
-
-}
 
 const OTPgen = async () => {
   let code = '';
@@ -648,6 +633,18 @@ router.get("/csrfToken", csrfProtection, (req, res) => {
   jwtCsrfMap.set(jwtToken, req.csrfToken());
   res.json({ csrfToken: req.csrfToken() });
 });
+
+router.get("/logOut", csrfProtection, (req, res) => {
+  const jwtToken = req.header("Authorization").replace("Bearer ", "");
+  
+
+  if (jwtCsrfMap.has(jwtToken)) {
+    jwtCsrfMap.delete(jwtToken);
+  }
+
+  res.json({ message: "Logged out successfully" });
+});
+
 
 
 router.post("/picassoEmail" , async (req , res)=>{

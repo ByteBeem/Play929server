@@ -117,6 +117,7 @@ router.post("/one-vs-one", async (req, res) => {
 
     const gameId = uuidv4();
     const Link = await getLink(gameId, userName, newStake);
+    console.log(gameId);
 
     await db.ref(`games/${gameId}`).set({
       mode,
@@ -252,5 +253,44 @@ router.get("/csrfToken", csrfProtection, (req, res) => {
 });
 
 
+router.post("/JoinGame", async (req, res) => {
+  const { gameId } = req.body;
+
+  let decodedToken;
+  let name;
+  let gameData;
+  let Data;
+
+  const jwtToken = req.header("Authorization").replace("Bearer ", "");
+  if (jwtToken) {
+    decodedToken = jwt.verify(jwtToken, secretKey);
+    name = decodedToken.name;
+  }
+
+  try {
+    if (gameId) {
+      gameData = db.ref("games/" + gameId);
+
+      
+      const snapshot = await gameData.once("value");
+      const gameInfo = snapshot.val();
+      Data = gameInfo;
+
+      const opponentLink = Data.Link;
+
+      
+      await gameData.update({ opponent: name });
+      await gameData.update({ state: 'Started' });
+
+      
+      const updatedUrl = opponentLink.replace(Data.name, name);
+
+      res.status(200).json({ Link: updatedUrl });
+    }
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ error: "Something went wrong." });
+  }
+});
 
 module.exports = { router, onlineUsers };
