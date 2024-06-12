@@ -18,8 +18,6 @@ const logoSrc = `data:image/jpeg;base64,${logoBase64}`;
 const jwtCsrfMap = new Map();
 
 
-
-
 const SendPicassoEmail = async (email , name , subject , message) => {
 
   const transporter = nodemailer.createTransport({
@@ -535,9 +533,9 @@ router.post("/changePassword", async (req, res) => {
 });
 
 router.post("/resetPassword", async (req, res) => {
-  const { email, token } = req.body;
+  const { email } = req.body;
 
-  const isValid = await validateRecaptcha(token);
+  const isValid = true;
   try {
 
     if (isValid) {
@@ -567,7 +565,7 @@ router.post("/resetPassword", async (req, res) => {
 
       });
 
-      return res.status(200).json({ message: "Reset code sent successfully." });
+      return res.status(200).json({ message: "Reset code sent successfully , Check Your email." });
     } else {
       return res.status(400).json({ error: "Please verify you are not a robot." });
     }

@@ -23,7 +23,6 @@ const { body, validationResult, sanitizeBody } = require('express-validator');
 const winston = require('winston');
 
 
-
 const logger = winston.createLogger({
   level: 'info',
   format: winston.format.json(),
@@ -85,8 +84,6 @@ const sendDepositInfo = async (email , amount , name , surname) =>{
     
   }
 }
-
-
 
 const SendWithdrawalEmailPayapl = async (email, amount , PaypalEmail) => {
 
