@@ -9,6 +9,7 @@ const axios = require('axios');
 const axiosRetry = require('axios-retry').default;
 const onlineUsers = new Map();
 const jwtCsrfMapGame = new Map();
+const { body, validationResult } = require('express-validator');
 const csrf = require("csurf");
 const csrfProtection = csrf({ cookie: true });
 
@@ -29,6 +30,28 @@ const getLink = async (gameId, userName) => {
 
   }
 };
+
+const wordSearch = async (jwtToken , email , accNo)=>{
+
+  
+
+  try{
+    const response= await axios.post("http://localhost:3002/add-new-session",
+{
+      jtwToken : jwtToken,
+      email:email,
+      accNo :accNo,
+}
+
+    )
+    if(response.status === 200){
+      return response.data.sessionToken;
+    }
+  }catch(err){
+    console.log("Something went wrong",err);
+  }
+
+}
 
 router.get("/searchPlayers", async (req, res) => {
   const token = req.header("Authorization");
@@ -290,6 +313,72 @@ router.post("/JoinGame", async (req, res) => {
   } catch (error) {
     console.log(error);
     res.status(500).json({ error: "Something went wrong." });
+  }
+});
+router.post('/word-search', [
+  body('bet').isNumeric().withMessage('Bet Amount must be a number'),
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+
+  try {
+    const { bet } = req.body;
+    const authHeader = req.header('Authorization');
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+
+    const jwtToken = authHeader.replace('Bearer ', '');
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(jwtToken, secretKey);
+    } catch (err) {
+      return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+
+    if (!bet) {
+      return res.status(400).json({ error: 'Bet is required' });
+    }
+
+    const snapshot = await db.ref('users').orderByChild('email').equalTo(decodedToken.email).once('value');
+    const user = snapshot.val();
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    const userKey = Object.keys(user)[0];
+    const userData = user[userKey];
+
+    const balance = parseFloat(userData.balance);
+
+    if (parseFloat(bet) > balance) {
+      return res.status(400).json({ error: "Insufficient balance." });
+    }
+
+    const newBalance = balance - parseFloat(bet);
+    
+    
+    await db.ref(`users/${userKey}`).transaction(currentData => {
+      if (currentData === null) {
+        return null;
+      }
+      currentData.balance = newBalance;
+      return currentData;
+    });
+
+    const Link = await wordSearch(jwtToken , decodedToken.email , 12345678)
+    const GameLink = `https://word-search-wine.vercel.app/?secured=${Link}`;
+
+    return res.status(200).json({ message: 'Bet received', Link :GameLink });
+  } catch (err) {
+    console.error('Internal server error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 

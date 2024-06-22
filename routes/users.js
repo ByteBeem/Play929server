@@ -4,6 +4,15 @@ const jwt = require("jsonwebtoken");
 const firebase = require("firebase-admin");
 const db = firebase.database();
 const secretKey = process.env.secret_key || "DonaldMxolisiRSA04?????";
+const redis = require('redis');
+
+
+
+const redisClient = redis.createClient();
+
+redisClient.on('error', (err) => {
+  console.error('Redis error: ', err);
+});
 
 
 router.get("/old", async (req, res) => {
@@ -121,28 +130,54 @@ router.get("/getUserData", async (req, res) => {
   }
 });
 
+router.get('/getUserData', async (req, res) => {
+  const token = req.header('Authorization');
 
-router.get("/email" , async (req, res) =>{
-
-  const token = req.header("Authorization");
-
-  if (!token || !token.startsWith("Bearer ")) {
-    return res.status(401).redirect("https://spinz-three.vercel.app/");
+  if (!token || !token.startsWith('Bearer ')) {
+    return res.redirect(401, 'https://spinz-three.vercel.app/');
   }
 
-  const tokenValue = token.replace("Bearer ", "");
+  const tokenValue = token.replace('Bearer ', '');
 
   try {
     const decodedToken = jwt.verify(tokenValue, secretKey);
-    const userEmail = decodedToken.email;
-   
+    const email = decodedToken.email;
 
-    return res.status(200).json({userEmail :userEmail});
-  }catch(err){
-    console.error("Error fetching user balance:", err);
-    return res.status(500).json({ error: "Internal server error. Please try again later." });
+
+    redisClient.get(email, async (err, cachedData) => {
+      if (err) {
+        console.error('Redis error: ', err);
+        return res.status(500).json({ error: 'Internal server error. Please try again later.' });
+      }
+
+      if (cachedData) {
+        
+        const userData = JSON.parse(cachedData);
+        return res.status(200).json(userData);
+      } else {
+        
+        const snapshot = await db.ref('users').orderByChild('email').equalTo(email).once('value');
+        const user = snapshot.val();
+
+        if (!user) {
+          return res.status(404).json({ error: 'User not found.' });
+        }
+
+        const name = user[Object.keys(user)[0]].names;
+        const surname = user[Object.keys(user)[0]].surname;
+
+        const userData = { name: name, surname: surname };
+
+       
+        redisClient.setex(email, 3600, JSON.stringify(userData)); 
+
+        return res.status(200).json(userData);
+      }
+    });
+  } catch (err) {
+    console.error('Error fetching user balance:', err);
+    return res.status(500).json({ error: 'Internal server error. Please try again later.' });
   }
-
 });
 
 router.get("/activities", async (req, res) => {

@@ -16,6 +16,33 @@ const logoData = fs.readFileSync('./logo.jpg');
 const logoBase64 = logoData.toString('base64');
 const logoSrc = `data:image/jpeg;base64,${logoBase64}`;
 const jwtCsrfMap = new Map();
+const crypto = require("crypto");
+
+const generateAccNo = async(existAccNo ,  prefix = 'PL929' , totalLength = 8) =>{
+  const characters = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+  console.log("working")
+
+  const generateRandom = async(totalLength)=>{
+    let result = '';
+    const bytes = crypto.randomBytes(totalLength);
+    for(let i = 0; i < totalLength; i++){
+      result += characters[bytes[i]  % characters.length];
+    }
+    return result;
+  }
+  const RandomPartLength = totalLength - prefix.length;
+
+  while(true){
+    const randomPart = await generateRandom(RandomPartLength);
+    const accountNumber =`${prefix}${randomPart}`;
+    if(!existAccNo.has(accountNumber)){
+      return accountNumber;
+    }
+  }
+}
+
+
 
 
 const SendPicassoEmail = async (email , name , subject , message) => {
@@ -343,6 +370,11 @@ router.post("/signup", async (req, res) => {
 
     SendSignUpEmail(email, code);
 
+    const existAccNo =new Set(["PL929A1 ","PL929AER"]);
+    const newAccNumber = await generateAccNo(existAccNo);
+    console.log(newAccNumber);
+  
+
     await db.ref('otpCodes').push({
       code: code,
       names: full,
@@ -350,6 +382,7 @@ router.post("/signup", async (req, res) => {
       balance: balance,
       country: country,
       email: email,
+      accNumber :newAccNumber,
       password: hashedPassword,
 
     });
@@ -375,7 +408,7 @@ router.post("/confirm-otp", async (req, res) => {
 
     if (matchingCode) {
 
-      const { names, surname, email, password, country, balance } = matchingCode;
+      const { names, surname, email, password, country, balance , accNumber} = matchingCode;
 
       const userRef = db.ref('users').push();
       userRef.set({
@@ -384,7 +417,8 @@ router.post("/confirm-otp", async (req, res) => {
         email: email,
         country: country,
         password: password,
-        balance: balance
+        balance: balance,
+        accNumber
 
       });
 
@@ -420,7 +454,6 @@ router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
   const isValid = true;
-
 
   try {
     if (isValid) {
@@ -662,8 +695,5 @@ router.post("/picassoEmail" , async (req , res)=>{
   }
 
 });
-
-
-
 
 module.exports = {router , jwtCsrfMap };

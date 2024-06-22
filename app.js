@@ -12,6 +12,7 @@ const compression = require('compression');
 const morgan = require('morgan');
 const cookieParser = require("cookie-parser");
 
+
 const app = express();
 const port = process.env.PORT || 3001;
 const server = http.createServer(app);
@@ -55,10 +56,14 @@ app.use((req, res, next) => {
 
 
 const limiter = rateLimit({
-  max: 100,
-  windowMs: 60 * 60 * 1000,
-  message: 'Too many requests from this IP, please try again later',
+  windowMs: 15 * 60 * 1000, 
+  max: 100, 
+  message: 'Too many requests, please try again after 15 minutes'
 });
+
+app.use(limiter);
+
+
 app.use('/auth/login', limiter);
 
 app.use(morgan('combined'));
